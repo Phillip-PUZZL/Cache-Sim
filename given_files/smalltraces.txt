@@ -1,0 +1,68 @@
+TESTCASE 1 - a test of set associativity for Reads. 
+Use the base configuration:  		blocksize is 16bytes,
+					 cache capacity is 8Kbytes
+					 set assoc is 4
+
+0 003f8010
+0 003f8810
+0 003f9010
+0 003fa010
+0 003f8004
+0 003f8800
+0 003fa000
+0 003f8000
+0 003f9ff4
+0 003f8ff8
+0 003f7ffc
+0 003f6ff0
+
+--------------------------------------------------------------
+TESTCASE 2 - a test of replacement and associativity for Reads.
+		Use the same cache configuration as testcase 1.
+0 003f8010
+0 003f8810
+0 003f9010
+0 003fa010
+0 003f8000
+0 003f8800
+0 003fa000
+0 003fd800
+0 003fb010
+0 003fc014
+0 003fd018
+0 003f8804
+0 003f8000
+0 003fa008
+0 003f8800
+0 003f800c
+0 003fa804
+0 003fc804
+
+--------------------------------------------------------------
+TESTCASE 3 - a test of replacement and associativity for Writes.
+		Use the same cache configuration as testcase 1.
+
+1 003f8010 1111
+1 003f8014 2222
+1 003f8018 3333
+1 003f801c 4444
+1 003f800c 5555
+0 003f8008 
+1 003f8004 6666
+0 003f8000 
+1 003f8810 7777
+1 003f9010 8888
+1 003fa010 9999
+1 003fb010 aaaa
+1 003f8800 bbbb
+1 003fa000 cccc
+1 003fd800 dddd
+0 003fe800 
+0 003f8000
+
+--------------------------------------------------------------
+TESTCASE 4 - Direct mapped test
+	blocksize is 16bytes,
+       	cache capacity is 8Kbytes
+ 	set assoc is 1
+	Use TESTCASE 3 data
