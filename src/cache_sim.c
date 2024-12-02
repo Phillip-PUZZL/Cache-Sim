@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 //OS Specific Libraries
 #ifdef _WIN32
 // Windows-specific code
 #include <limits.h>
+#include <io.h>
+#include <time.h>
 #elif __linux__
 // Linux-specific code
-#include <sys/syslimits.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/time.h>
 #elif __APPLE__
@@ -21,6 +24,101 @@
 //
 // Created by Phillip Driscoll on 9/18/24.
 //
+
+#if defined(_WIN32)
+#include <windows.h>
+
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
+
+int gettimeofday(struct timeval *tv, struct timezone *tz) {
+    FILETIME ft;
+    unsigned __int64 tmpres = 0;
+    static int tzflag = 0;
+
+    if (NULL != tv) {
+        GetSystemTimeAsFileTime(&ft);
+
+        tmpres |= ft.dwHighDateTime;
+        tmpres <<= 32;
+        tmpres |= ft.dwLowDateTime;
+
+        tmpres /= 10;  /*convert into microseconds*/
+        /*converting file time to unix epoch*/
+        tmpres -= DELTA_EPOCH_IN_MICROSECS;
+        tv->tv_sec = (long)(tmpres / 1000000UL);
+        tv->tv_usec = (long)(tmpres % 1000000UL);
+    }
+
+    if (NULL != tz) {
+        if (!tzflag) {
+            _tzset();
+            tzflag++;
+        }
+        tz->tz_minuteswest = _timezone / 60;
+        tz->tz_dsttime = _daylight;
+    }
+
+    return 0;
+}
+
+size_t getline(char **lineptr, size_t *n, FILE *stream) {
+    char *bufptr = NULL;
+    char *p = bufptr;
+    size_t size;
+    int c;
+
+    if (lineptr == NULL) {
+        return -1;
+    }
+    if (stream == NULL) {
+        return -1;
+    }
+    if (n == NULL) {
+        return -1;
+    }
+    bufptr = *lineptr;
+    size = *n;
+
+    c = fgetc(stream);
+    if (c == EOF) {
+        return -1;
+    }
+    if (bufptr == NULL) {
+        bufptr = malloc(128);
+        if (bufptr == NULL) {
+            return -1;
+        }
+        size = 128;
+    }
+    p = bufptr;
+    while (c != EOF) {
+        if ((p - bufptr) > (size - 1)) {
+            size = size + 128;
+            bufptr = realloc(bufptr, size);
+            if (bufptr == NULL) {
+                return -1;
+            }
+            p = bufptr + (size - 128);
+        }
+        *p++ = c;
+        if (c == '\n') {
+            break;
+        }
+        c = fgetc(stream);
+    }
+
+    *p++ = '\0';
+    *lineptr = bufptr;
+    *n = size;
+
+    return p - bufptr - 1;
+}
+#endif // _WIN32
+
 
 //Function to calculate time difference for benchmarking
 float time_difference_msec(struct timeval t0, struct timeval t1) {
@@ -64,8 +162,8 @@ int process_trace(char* input_file, struct cache* cache_mem, struct cache_stats*
         while((read = getline(&line, &len, trace_file)) != -1) {
             int read_write = -1;
             //Longs so that we can verify that a 32-bit address was actually pulled from the file
-            unsigned long addr = -1;
-            unsigned long val = -1;
+            unsigned long long addr = -1;
+            unsigned long long val = -1;
 
             //Verify that the line only contains hex characters, spaces, and new lines
             for(int i = 0; i < read; i++) {
@@ -85,7 +183,7 @@ int process_trace(char* input_file, struct cache* cache_mem, struct cache_stats*
 
             if(read_write == CACHE_READ) {
                 //Line is a read, get the address
-                sscanf(line, "%*x %lx", &addr);
+                sscanf(line, "%*x %llx", &addr);
 
                 //Verify address was retrieved
                 if(addr == -1) {
@@ -98,11 +196,11 @@ int process_trace(char* input_file, struct cache* cache_mem, struct cache_stats*
                 read_from_cache(cache_mem, stats, main_mem, addr);
             } else if(read_write == CACHE_WRITE) {
                 //Line is a write, get the address and new value
-                sscanf(line, "%*x %lx %lx", &addr, &val);
+                sscanf(line, "%*x %llx %llx", &addr, &val);
 
                 //Verify the address and value retrieved from the line
                 if(addr == -1 || val == -1) {
-                    printf("Error: Malformed address or value: Could not read address or value on line %d\n", line_num);
+                    printf("Error: Malformed address or value: Could not read address or value on line %d, %llu %llu\n", line_num, addr, val);
                     failure = 1;
                     break;
                 }

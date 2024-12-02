@@ -29,12 +29,30 @@
 #endif
 
 //Defining integer size based on bits
+#ifdef _WIN32
+#ifdef M16
+#define INT_TYPE unsigned __int16
+#elif M64
+#define INT_TYPE unsigned __int64
+#else
+#define INT_TYPE unsigned __int32
+#endif
+#elif __linux__
+#ifdef M16
+#define INT_TYPE u_int16_t
+#elif M64
+#define INT_TYPE u_int64_t
+#else
+#define INT_TYPE u_int32_t
+#endif
+#elif __APPLE__
 #ifdef M16
 #define INT_TYPE uint16_t
 #elif M64
 #define INT_TYPE uint64_t
 #else
 #define INT_TYPE uint32_t
+#endif
 #endif
 
 //Setting the size of main memory, its block size, and calculating total number of blocks
@@ -87,6 +105,7 @@ struct cache_stats {
     long write_misses;
 
     long total_evictions;
+    long dirty_evictions;
     long total_loads;
 };
 

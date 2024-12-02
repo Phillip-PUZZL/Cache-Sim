@@ -22,6 +22,7 @@ struct cache zero_cache() {
 struct cache_stats zero_stats() {
     struct cache_stats primer;
 
+    primer.dirty_evictions = 0;
     primer.total_evictions = 0;
     primer.total_loads = 0;
     primer.write_misses = 0;
@@ -106,16 +107,29 @@ void free_io(struct cache cache_mem, struct main_mem_block* main_mem) {
 //Function to print the cache and specified amount of memory to screen
 void print_cache_and_memory(struct cache cache_mem, struct cache_stats stats,
         struct main_mem_block* main_mem) {
+    float miss_rate = ((float) stats.total_misses / (float) stats.total_actions);
+    float read_miss_rate = ((float) stats.read_misses / (float) stats.total_reads);
+    float write_miss_rate = ((float) stats.write_misses / (float) stats.total_writes);
+
+    if(isnan(miss_rate)) {
+        miss_rate = 0.0;
+    }
+    if(isnan(read_miss_rate)) {
+        read_miss_rate = 0.0;
+    }
+    if(isnan(write_miss_rate)) {
+        write_miss_rate = 0.0;
+    }
+
     // Use this code to format and print your output
-    printf("STATISTICS\n");
+    printf("STATISTICS:\n");
     printf("Misses:\n");
-    printf("Total: %ld Data Reads: %ld Data Writes: %ld\n", stats.total_misses, stats.read_misses, stats.write_misses);
+    printf("Total: %ld DataReads: %ld DataWrites: %ld\n", stats.total_misses, stats.read_misses, stats.write_misses);
     printf("Miss rate:\n");
-    printf("Total: %.6f Data Reads: %.6f Data Writes: %.6f\n", ((float) stats.total_misses / (float) stats.total_actions),
-           ((float) stats.read_misses / (float) stats.total_reads), ((float) stats.write_misses / (float) stats.total_writes));
-    printf("Number of Dirty Blocks Evicted from the Cache: %ld\n\n", stats.total_evictions);
+    printf("Total: %.6f DataReads: %.6f DataWrites: %.6f\n", miss_rate, read_miss_rate, write_miss_rate);
+    printf("Number of Dirty Blocks Evicted from the Cache: %ld\n\n", stats.dirty_evictions);
     printf("CACHE CONTENTS\n");
-    printf("%-6s %-5s %-10s %-6s", "Set", "Valid", "Tag", "Dirty");
+    printf("%-6s %-3s %-8s %-8s", "Set", "V", "Tag", " Dirty");
 
     for(int i = 0; i < cache_mem.line_size / WORD_SIZE; i++) {
         printf("Word%-7d", i);
@@ -124,12 +138,12 @@ void print_cache_and_memory(struct cache cache_mem, struct cache_stats stats,
 
     for(int i = 0; i < cache_mem.total_lines; i++) {
         struct cache_mem_block block = cache_mem.lines[i];
-        printf("0x%04X %-5d 0x%08X %-5d", block.set, block.valid, block.tag, block.dirty);
+        printf("%04X   %-3d %08X    %-5d", block.set, block.valid, block.tag, block.dirty);
 
         int cutoff = cache_mem.line_size / WORD_SIZE;
 
         for(int j = 0; j < cutoff; j++) {
-            printf(" 0x%08X", block.words[j]);
+            printf("%08X   ", block.words[j]);
         }
         printf("\n");
     }
@@ -147,7 +161,7 @@ void print_cache_and_memory(struct cache cache_mem, struct cache_stats stats,
     int end_block = (int) floor((double) (MAIN_MEMORY_START_PRINT + MAIN_MEMORY_PRINT_SIZE) / (double) MM_WORDS_PER_BLOCK);
     for(int i = start_block; i < end_block; i++) {
         struct main_mem_block block = main_mem[i];
-        printf("0x%08X", block.address);
+        printf("%08X   ", block.address);
 
         //Determining how many words to write in case the print size results in a less than perfect
         //block being printed
@@ -160,7 +174,7 @@ void print_cache_and_memory(struct cache cache_mem, struct cache_stats stats,
         }
 
         for(int j = 0; j < cutoff; j++) {
-            printf(" 0x%08X", block.words[j]);
+            printf("%08X   ", block.words[j]);
         }
         printf("\n");
     }
@@ -177,16 +191,29 @@ void write_cache_and_memory(char* output, struct cache cache_mem, struct cache_s
         return;
     }
 
+    float miss_rate = ((float) stats.total_misses / (float) stats.total_actions);
+    float read_miss_rate = ((float) stats.read_misses / (float) stats.total_reads);
+    float write_miss_rate = ((float) stats.write_misses / (float) stats.total_writes);
+
+    if(isnan(miss_rate)) {
+        miss_rate = 0.0;
+    }
+    if(isnan(read_miss_rate)) {
+        read_miss_rate = 0.0;
+    }
+    if(isnan(write_miss_rate)) {
+        write_miss_rate = 0.0;
+    }
+
     // Use this code to format and print your output
-    fprintf(output_file, "STATISTICS\n");
+    fprintf(output_file, "STATISTICS:\n");
     fprintf(output_file, "Misses:\n");
-    fprintf(output_file, "Total: %ld Data Reads: %ld Data Writes: %ld\n", stats.total_misses, stats.read_misses, stats.write_misses);
+    fprintf(output_file, "Total: %ld DataReads: %ld DataWrites: %ld\n", stats.total_misses, stats.read_misses, stats.write_misses);
     fprintf(output_file, "Miss rate:\n");
-    fprintf(output_file, "Total: %.6f Data Reads: %.6f Data Writes: %.6f\n", ((float) stats.total_misses / (float) stats.total_actions),
-           ((float) stats.read_misses / (float) stats.total_reads), ((float) stats.write_misses / (float) stats.total_writes));
-    fprintf(output_file, "Number of Dirty Blocks Evicted from the Cache: %ld\n\n", stats.total_evictions);
+    fprintf(output_file, "Total: %.6f DataReads: %.6f DataWrites: %.6f\n", miss_rate, read_miss_rate, write_miss_rate);
+    fprintf(output_file, "Number of Dirty Blocks Evicted from the Cache: %ld\n\n", stats.dirty_evictions);
     fprintf(output_file, "CACHE CONTENTS\n");
-    fprintf(output_file, "%-6s %-5s %-10s %-6s", "Set", "Valid", "Tag", "Dirty");
+    fprintf(output_file, "%-6s %-3s %-8s %-8s", "Set", "V", "Tag", " Dirty");
 
     for(int i = 0; i < cache_mem.line_size / WORD_SIZE; i++) {
         fprintf(output_file, "Word%-7d", i);
@@ -195,12 +222,12 @@ void write_cache_and_memory(char* output, struct cache cache_mem, struct cache_s
 
     for(int i = 0; i < cache_mem.total_lines; i++) {
         struct cache_mem_block block = cache_mem.lines[i];
-        fprintf(output_file, "0x%04X %-5d 0x%08X %-5d", block.set, block.valid, block.tag, block.dirty);
+        fprintf(output_file, "%04X   %-3d %08X    %-5d", block.set, block.valid, block.tag, block.dirty);
 
         int cutoff = cache_mem.line_size / WORD_SIZE;
 
         for(int j = 0; j < cutoff; j++) {
-            fprintf(output_file, " 0x%08X", block.words[j]);
+            fprintf(output_file, "%08X   ", block.words[j]);
         }
         fprintf(output_file, "\n");
     }
@@ -218,8 +245,10 @@ void write_cache_and_memory(char* output, struct cache cache_mem, struct cache_s
     int end_block = (int) floor((double) (MAIN_MEMORY_START_PRINT + MAIN_MEMORY_PRINT_SIZE) / (double) MM_WORDS_PER_BLOCK);
     for(int i = start_block; i < end_block; i++) {
         struct main_mem_block block = main_mem[i];
-        fprintf(output_file, "0x%08X", block.address);
+        fprintf(output_file, "%08X   ", block.address);
 
+        //Determining how many words to write in case the print size results in a less than perfect
+        //block being printed
         int cutoff = MM_BLOCK_SIZE / WORD_SIZE;
 
         if(i == start_block) {
@@ -229,7 +258,7 @@ void write_cache_and_memory(char* output, struct cache cache_mem, struct cache_s
         }
 
         for(int j = 0; j < cutoff; j++) {
-            fprintf(output_file, " 0x%08X", block.words[j]);
+            fprintf(output_file, "%08X   ", block.words[j]);
         }
         fprintf(output_file, "\n");
     }
@@ -424,6 +453,10 @@ bool evict_line(struct cache* cache_mem, struct main_mem_block* main_mem, INT_TY
         mm_block_offset = 0;
     }
 
+    if(cache_mem->lines[line].dirty) {
+        code = 1;
+    }
+
     //If the cache line is not being kept in the cache, reset all variables associated with that line
     if(!keep_in_cache) {
         cache_mem->lines[line].last_pc = -1;
@@ -448,11 +481,13 @@ int load_line(struct cache* cache_mem, struct main_mem_block* main_mem, INT_TYPE
         bool evict_status = evict_line(cache_mem, main_mem, get_lru_cm_line(*cache_mem, info.set), 0);
 
         //If cache fails to evict, return from this function with an error
-        if(evict_status != 0) {
+        if(evict_status == 0) {
+            code = 1;
+        } else if(evict_status == 1) {
+            code = 2;
+        } else {
             return 3;
         }
-
-        code = 1;
     }
 
     //Calculate the main memory block offset (see explanation in evict_line function if confused about its purpose)
@@ -525,6 +560,11 @@ int write_to_cache(struct cache* cache_mem, struct cache_stats* stats,
             //Load with an eviction
             stats->total_loads++;
             stats->total_evictions++;
+        } else if(status == 2) {
+            //Load with an eviction of a dirty block
+            stats->total_loads++;
+            stats->total_evictions++;
+            stats->dirty_evictions++;
         } else {
             return status - 1;
         }
@@ -570,6 +610,11 @@ int read_from_cache(struct cache* cache_mem, struct cache_stats* stats,
             //Load w/ eviction
             stats->total_loads++;
             stats->total_evictions++;
+        } else if(status == 2) {
+            //Load w/ eviction of a dirty block
+            stats->total_loads++;
+            stats->total_evictions++;
+            stats->dirty_evictions++;
         } else {
             return status - 1;
         }
