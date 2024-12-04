@@ -1,0 +1,44 @@
+Processed 12 instructions in 0.018000 ms
+
+STATISTICS:
+Misses:
+Total: 12 DataReads: 12 DataWrites: 0
+Miss rate:
+Total: 1.000000 DataReads: 1.000000 DataWrites: 0.000000
+Number of Dirty Blocks Evicted from the Cache: 0
+
+Processed 18 instructions in 0.053000 ms
+
+STATISTICS:
+Misses:
+Total: 16 DataReads: 16 DataWrites: 0
+Miss rate:
+Total: 0.888889 DataReads: 0.888889 DataWrites: 0.000000
+Number of Dirty Blocks Evicted from the Cache: 0
+
+Processed 17 instructions in 0.026000 ms
+
+STATISTICS:
+Misses:
+Total: 17 DataReads: 4 DataWrites: 13
+Miss rate:
+Total: 1.000000 DataReads: 1.000000 DataWrites: 1.000000
+Number of Dirty Blocks Evicted from the Cache: 2
+
+Processed 17 instructions in 0.022000 ms
+
+STATISTICS:
+Misses:
+Total: 17 DataReads: 4 DataWrites: 13
+Miss rate:
+Total: 1.000000 DataReads: 1.000000 DataWrites: 1.000000
+Number of Dirty Blocks Evicted from the Cache: 7
+
+Processed 100000 instructions in 26.601999 ms
+
+STATISTICS:
+Misses:
+Total: 83074 DataReads: 416 DataWrites: 82658
+Miss rate:
+Total: 0.830740 DataReads: 0.036952 DataWrites: 0.931442
+Number of Dirty Blocks Evicted from the Cache: 82433
